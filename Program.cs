@@ -8,20 +8,28 @@ IConfiguration configuration = builder.SetBasePath(AppContext.BaseDirectory)
     .AddJsonFile("appsettings.json ")
     .Build();
 
+// initialize variable from config
 int port = int.Parse(configuration["ClientConfig:Port"]);
-string serverIP = configuration["ClientConfig:ServerIP"];
 int bufferSize = int.Parse(configuration["ClientConfig:BufferSize"]);
+string serverIP = configuration["ClientConfig:ServerIP"];
 string AES_Key = configuration["ClientConfig:AES_Key"];
 string AES_IV = configuration["ClientConfig:AES_IV"];
 
+EncryptDecrypt en = new EncryptDecrypt(AES_Key, AES_IV);
 
 
-// Console.Write("Please enter the code - ");
-string code = Console.ReadLine();
 try
 {
-    TcpClient tcpClient = new TcpClient(serverIP, port);
-    EncryptDecrypt en = new EncryptDecrypt(AES_Key, AES_IV);
+    // create tcp client
+    TcpClient tcpClient = new(serverIP, port);
+
+
+    Console.WriteLine($"TCP Client initialized with endpoint {serverIP}:{port}");
+
+    // prompt to enter the code
+    Console.Write("Please enter the code - ");
+    string code = Console.ReadLine();
+
 
     // Get a client stream for reading and writing.
     NetworkStream stream = tcpClient.GetStream();
@@ -30,7 +38,7 @@ try
     stream.Write(data, 0, data.Length);
 
     data = new Byte[bufferSize];
-    
+
     // String to store the response ASCII representation.
     string responseData = String.Empty;
 
@@ -40,10 +48,16 @@ try
     {
         // remove padding
         byte[] actualData = data[..bytes];
+
         responseData = en.Decrypt(actualData);
         Console.WriteLine($"{responseData}");
     }
+
     tcpClient.Close();
+}
+catch (System.IO.IOException IOException)
+{
+    Console.Write($"Unable to read data {IOException}");
 }
 catch (Exception e)
 {
